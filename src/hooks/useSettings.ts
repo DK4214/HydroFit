@@ -1,40 +1,46 @@
+'use client';
+
 import { useState, useEffect } from 'react';
-import { UserSettings } from '@/types';
 
-const STORAGE_KEY = 'user_settings';
+export interface Settings {
+  onboardingCompleted: boolean;
+  dailyGoal: number;
+  unit: 'ml' | 'oz';
+}
 
-const DEFAULT_SETTINGS: UserSettings = {
-  dailyGoal: 2000, // default 2L
-  remindersEnabled: true,
-  reminderInterval: 2, // 2 hours
+const defaultSettings: Settings = {
+  onboardingCompleted: false,
+  dailyGoal: 2000,
+  unit: 'ml',
 };
 
 export function useSettings() {
-  const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setSettings(JSON.parse(stored));
+    // Carrega settings do localStorage
+    const savedSettings = localStorage.getItem('water-tracker-settings');
+    if (savedSettings) {
+      try {
+        const parsed = JSON.parse(savedSettings);
+        setSettings({ ...defaultSettings, ...parsed });
+      } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+      }
     }
+    setIsLoading(false);
   }, []);
 
-  const updateSettings = (newSettings: Partial<UserSettings>) => {
+  const updateSettings = (newSettings: Partial<Settings>) => {
     const updated = { ...settings, ...newSettings };
     setSettings(updated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
-
-  const calculateSuggestedGoal = (weight?: number) => {
-    if (weight) {
-      return weight * 35; // 35ml per kg is a common rule
-    }
-    return 2000; // default
+    localStorage.setItem('water-tracker-settings', JSON.stringify(updated));
   };
 
   return {
     settings,
+    isLoading,
     updateSettings,
-    calculateSuggestedGoal,
   };
 }
